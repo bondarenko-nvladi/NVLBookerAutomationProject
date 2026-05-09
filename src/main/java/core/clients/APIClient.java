@@ -12,6 +12,11 @@ public class APIClient {
         this.baseUrl = determineBaseUrl();
     }
 
+    //Геттер для baseUrl
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
     //Определение базового URL на основе файла конфигурации
     private String determineBaseUrl() {
         String environment = System.getProperty("env", "test");
