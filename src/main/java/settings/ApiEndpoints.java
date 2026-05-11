@@ -3,7 +3,8 @@ package settings;
 public enum ApiEndpoints {
     PING("/ping"),
     BOOKING("/booking"),
-    BOOKING_BY_ID("/booking/");
+    BOOKING_BY_ID("/booking/"),
+    AUTH("/auth");
 
     private final String path;
 
