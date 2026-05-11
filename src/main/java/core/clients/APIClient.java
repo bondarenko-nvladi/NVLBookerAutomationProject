@@ -1,5 +1,10 @@
 package core.clients;
 
+import io.restassured.response.Response;
+import settings.ApiEndpoints;
+import io.restassured.RestAssured;
+import io.restassured.specification.RequestSpecification;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -33,7 +38,60 @@ public class APIClient {
         }
         return properties.getProperty("baseUrl");
     }
+
+    //Настройка базовых параметров HTTP-запросов
+    private RequestSpecification getRequestSpec() {
+        return RestAssured.given()
+                .baseUri(baseUrl)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json");
+    }
+
+
+    //GET запрос на эндпойнт /ping
+    public Response ping() {
+        return getRequestSpec()
+                .when()
+                .get(ApiEndpoints.PING.getPath()) //Используем ENUM для эндпойнта /ping
+                .then()
+                .statusCode(201) //Ожидаемый статус код 201 Created
+                .extract()
+                .response();
+    }
+
+    //GET запрос на эндпойнт /booking
+    public Response getBooking() {
+        return getRequestSpec()
+                .when()
+                .get(ApiEndpoints.BOOKING.getPath()) //Используем ENUM для эндпойнта /booking
+                .then()
+                .statusCode(200) //Ожидаемый статус код 200
+                .extract()
+                .response();
+    }
+
+    //GET запрос на эндпойнт /booking/111
+    public Response getBookingById (int bookingId) {
+        return getRequestSpec()
+                .when()
+                .get(ApiEndpoints.BOOKING_BY_ID.getPath() + bookingId) //Используем ENUM для эндпойнта /bookingId=111
+                .then()
+                .statusCode(200) //Ожидаемый статус код 200
+                .extract()
+                .response();
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
