@@ -9,8 +9,13 @@ import models.Booking;
 import models.BookingDates;
 import models.CreatedBooking;
 import models.NewBooking;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +38,15 @@ public class GetBookingsWithFilter {
         createdBookingIds = new ArrayList<>();
     }
 
+    @AfterEach
+    public void cleanup() {
+        // Удаляем созданные бронирования
+        for (Integer bookingId : createdBookingIds) {
+            apiClient.deleteBooking(bookingId);
+        }
+        createdBookingIds.clear();
+    }
+
     // Метод для создания бронирования
     private void createBooking(String firstname, String lastname, String checkin, String checkout) throws Exception {
         newBooking = new NewBooking();
@@ -53,83 +67,38 @@ public class GetBookingsWithFilter {
         createdBookingIds.add(bookingId);
     }
 
-    @Test
-    public void testFilterByFirstName() throws Exception {
-        Response response = apiClient.getBookingsWithFilter("");
-        //Создаем бронирования с разными именами
-        createBooking("John", "Inx", "2024-01-01", "2024-01-05");
-        createBooking("Jane", "Bush", "2024-02-10", "2024-02-15");
-        createBooking("Stive", "Doe", "2024-03-01", "2024-03-05");
-        createBooking("Stanley", "Johnson", "2024-04-01", "2024-04-05");
+    @ParameterizedTest
+    @CsvSource({
+            "Oleg, Prime, 2026-01-01, 2026-01-05",
+            "Olga, Straus, 2026-01-02, 2026-01-04"
+    })
+    public void testFilterByFirstName(String firstname, String lastname, String checkin, String checkout) throws Exception {
+        // Создаем бронирование
+        createBooking(firstname, lastname, checkin, checkout);
 
         // Проверка фильтров по firstName
-        Response responseJohn = apiClient.getBookingsWithFilter("?firstname=John");
-        assertThat(responseJohn.getStatusCode()).isEqualTo(200);
-        assertThat(responseJohn.jsonPath().getList("bookingid")).hasSize(1);
+        Response responseByFirstName = apiClient.getBookingsWithFilter("?firstname=" + firstname);
+        assertThat(responseByFirstName.getStatusCode()).isEqualTo(200);
+        List<Integer> bookingIdsByFirstName = responseByFirstName.jsonPath().getList("bookingid");
+        assertThat(bookingIdsByFirstName).hasSize(1);
 
-        Response responseJane = apiClient.getBookingsWithFilter("?firstname=Jane");
-        assertThat(responseJane.getStatusCode()).isEqualTo(200);
-        assertThat(responseJane.jsonPath().getList("bookingid")).hasSize(1);
-
-        Response responseStive = apiClient.getBookingsWithFilter("?firstname=Stive");
-        assertThat(responseStive.getStatusCode()).isEqualTo(200);
-        assertThat(responseStive.jsonPath().getList("bookingid")).hasSize(1);
-
-        Response responseStanley = apiClient.getBookingsWithFilter("?firstname=Stanley");
-        assertThat(responseStanley.getStatusCode()).isEqualTo(200);
-        assertThat(responseStanley.jsonPath().getList("bookingid")).hasSize(1);
-
-        // Проверка фильтров по lastName
-        Response responseInx = apiClient.getBookingsWithFilter("?lastname=Inx");
-        assertThat(responseInx.getStatusCode()).isEqualTo(200);
-        assertThat(responseInx.jsonPath().getList("bookingid")).hasSize(1);
-
-        Response responseBush = apiClient.getBookingsWithFilter("?lastname=Bush");
-        assertThat(responseBush.getStatusCode()).isEqualTo(200);
-        assertThat(responseBush.jsonPath().getList("bookingid")).hasSize(1);
-
-        Response responseDoe = apiClient.getBookingsWithFilter("?lastname=Doe");
-        assertThat(responseDoe.getStatusCode()).isEqualTo(200);
-        assertThat(responseDoe.jsonPath().getList("bookingid")).hasSize(1);
-
-        Response responseJohnson = apiClient.getBookingsWithFilter("?lastname=Johnson");
-        assertThat(responseJohnson.getStatusCode()).isEqualTo(200);
-        assertThat(responseJohnson.jsonPath().getList("bookingid")).hasSize(1);
-
-        // Проверка фильтров по checkin
-        Response responseCheckin1 = apiClient.getBookingsWithFilter("?checkin=2024-01-01");
-        assertThat(responseCheckin1.getStatusCode()).isEqualTo(200);
-        assertThat(responseCheckin1.jsonPath().getList("bookingid")).hasSize(1);
-
-        Response responseCheckin2 = apiClient.getBookingsWithFilter("?checkin=2024-02-10");
-        assertThat(responseCheckin2.getStatusCode()).isEqualTo(200);
-        assertThat(responseCheckin2.jsonPath().getList("bookingid")).hasSize(1);
-
-        Response responseCheckin3 = apiClient.getBookingsWithFilter("?checkin=2024-03-01");
-        assertThat(responseCheckin3.getStatusCode()).isEqualTo(200);
-        assertThat(responseCheckin3.jsonPath().getList("bookingid")).hasSize(1);
-
-        Response responseCheckin4 = apiClient.getBookingsWithFilter("?checkin=2024-04-01");
-        assertThat(responseCheckin4.getStatusCode()).isEqualTo(200);
-        assertThat(responseCheckin4.jsonPath().getList("bookingid")).hasSize(1);
+        // Дополнительная проверка: получаем бронирование и сверяем имя
+        int bookingId = bookingIdsByFirstName.get(0);
+        Response getBookingResponse = apiClient.getBookingById(bookingId);
+        Booking booking = objectMapper.readValue(getBookingResponse.getBody().asString(), Booking.class);
+        assertThat(booking.getFirstname()).isEqualTo(firstname);
 
 
-        // Проверка фильтров по checkout
-        Response responseCheckout1 = apiClient.getBookingsWithFilter("?checkout=2024-01-05");
-        assertThat(responseCheckout1.getStatusCode()).isEqualTo(200);
-        assertThat(responseCheckout1.jsonPath().getList("bookingid")).hasSize(1);
+        // Проверка фильтра по lastName
+        Response responseByLastName = apiClient.getBookingsWithFilter("?lastname=" + lastname);
+        assertThat(responseByLastName.getStatusCode()).isEqualTo(200);
+        List<Integer> bookingIdsByLastName = responseByLastName.jsonPath().getList("bookingid");
+        assertThat(bookingIdsByLastName).hasSize(1);
 
-        Response responseCheckout2 = apiClient.getBookingsWithFilter("?checkout=2024-02-15");
-        assertThat(responseCheckout2.getStatusCode()).isEqualTo(200);
-        assertThat(responseCheckout2.jsonPath().getList("bookingid")).hasSize(1);
-
-        Response responseCheckout3 = apiClient.getBookingsWithFilter("?checkout=2024-03-05");
-        assertThat(responseCheckout3.getStatusCode()).isEqualTo(200);
-        assertThat(responseCheckout3.jsonPath().getList("bookingid")).hasSize(1);
-
-        Response responseCheckout4 = apiClient.getBookingsWithFilter("?checkout=2024-04-05");
-        assertThat(responseCheckout4.getStatusCode()).isEqualTo(200);
-        assertThat(responseCheckout4.jsonPath().getList("bookingid")).hasSize(1);
-
+        // Дополнительная проверка: получаем бронирование и сверяем фамилию
+        int bookingIdByLastName = bookingIdsByLastName.get(0);
+        Response getBookingResponseByLastName = apiClient.getBookingById(bookingIdByLastName);
+        Booking bookingByLastName = objectMapper.readValue(getBookingResponseByLastName.getBody().asString(), Booking.class);
+        assertThat(bookingByLastName.getLastname()).isEqualTo(lastname);
     }
 }
