@@ -5,6 +5,7 @@ import io.restassured.filter.FilterContext;
 import io.restassured.response.Response;
 import io.restassured.specification.FilterableRequestSpecification;
 import io.restassured.specification.FilterableResponseSpecification;
+import models.Booking;
 import settings.ApiEndpoints;
 import io.restassured.RestAssured;
 import io.restassured.specification.RequestSpecification;
@@ -79,7 +80,7 @@ public class APIClient {
     //Фильтр для добавление токена в заголовок Autorization
     private Filter addAuthTokenFilter() {
         return (FilterableRequestSpecification requestSpec, FilterableResponseSpecification responseSpec, FilterContext ctx) -> {
-            if (token !=null) {
+            if (token != null) {
                 requestSpec.header("Cookie", "token=" + token);
             }
             return ctx.next(requestSpec, responseSpec);
@@ -109,7 +110,7 @@ public class APIClient {
     }
 
     //GET запрос на эндпойнт /booking/111
-    public Response getBookingById (int bookingId) {
+    public Response getBookingById(int bookingId) {
         return getRequestSpec()
                 .when()
                 .get(ApiEndpoints.BOOKING_BY_ID.getPath() + bookingId) //Используем ENUM для эндпойнта /bookingId=111
@@ -119,7 +120,7 @@ public class APIClient {
     }
 
     //Delete запрос на эндпоинт/booking
-    public Response deleteBooking (int bookingId) {
+    public Response deleteBooking(int bookingId) {
         return getRequestSpec()
                 .pathParam("id", bookingId) // указываем path parameter для id
                 .when()
@@ -130,7 +131,64 @@ public class APIClient {
                 .extract()
                 .response();
     }
+
+    public Response createBooking(String newBooking) {
+        return getRequestSpec()
+                .body(newBooking)
+                .log().all()
+                .when()
+                .post(ApiEndpoints.BOOKING.getPath())// Используем ENUM для эндпойнта/booking
+                .then()
+                .log().all()
+                .extract()
+                .response();
+    }
+
+    // PUT на эндпойнт /booking/{id} - обновление бронирования
+    public Response updateBooking(int bookingId, String requestBody) {
+        return getRequestSpec()
+                .body(requestBody)
+                .when()
+                .put("/booking/" + bookingId)
+                .then()
+                .log().all()
+                .statusCode(200)
+                .extract()
+                .response();
+    }
+
+    // PATCH запрос на эндпойнт /booking/{id} - частичное обновление бронирования
+    public Response partialUpdateBooking(int bookingId, String requestBody) {
+        return getRequestSpec()
+                .body(requestBody)
+                .when()
+                .patch("/booking/" + bookingId)
+                .then()
+                .log().all()
+                .statusCode(200)
+                .extract()
+                .response();
+    }
+
+    // GET запрос с фильтрацией
+    public Response getBookingsWithFilter(String queryParams) {
+        return getRequestSpec()
+                .when()
+                .get(ApiEndpoints.BOOKING.getPath() + queryParams)
+                .then()
+                .statusCode(200)
+                .log().all()
+                .extract()
+                .response();
+    }
 }
+
+
+
+
+
+
+
 
 
 
